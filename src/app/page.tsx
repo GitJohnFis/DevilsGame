@@ -1,6 +1,7 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Crown } from "lucide-react";
+import { Crown, ShieldAlert } from "lucide-react";
 
 interface Score {
   id: string;
@@ -11,15 +12,20 @@ interface Score {
   date: string;
 }
 
-const mockScores: Score[] = [
-  { id: "1", username: "Sir Lancelot", time: "01:15", boardSize: "8x8", moves: 64, date: "2024-07-20" },
-  { id: "2", username: "Lady Guinevere", time: "00:55", boardSize: "6x6", moves: 36, date: "2024-07-19" },
-  { id: "3", username: "Merlin The Wizard", time: "02:03", boardSize: "8x8", moves: 64, date: "2024-07-18" },
-  { id: "4", username: "Arthur Pendragon", time: "00:40", boardSize: "5x5", moves: 25, date: "2024-07-17" },
-  { id: "5", username: "Black Knight", time: "01:30", boardSize: "7x7", moves: 49, date: "2024-07-16" },
-];
+// Start with an empty array for scores
+const mockScores: Score[] = [];
 
 export default function LeaderboardPage() {
+  // Sort scores if any, otherwise keep as empty array
+  const sortedScores = mockScores.length > 0 
+    ? [...mockScores].sort((a,b) => {
+        const timeA = parseInt(a.time.replace(':',''));
+        const timeB = parseInt(b.time.replace(':',''));
+        if(timeA !== timeB) return timeA - timeB;
+        return b.moves - a.moves; // Secondary sort by moves if times are same
+      })
+    : [];
+
   return (
     <div className="space-y-8">
       <header className="text-center space-y-2">
@@ -49,21 +55,28 @@ export default function LeaderboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockScores.sort((a,b) => {
-                const timeA = parseInt(a.time.replace(':',''));
-                const timeB = parseInt(b.time.replace(':',''));
-                if(timeA !== timeB) return timeA - timeB;
-                return b.moves - a.moves; // Secondary sort by moves if times are same
-              }).map((score, index) => (
-                <TableRow key={score.id} className="hover:bg-accent/10">
-                  <TableCell className="font-bold text-lg">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{score.username}</TableCell>
-                  <TableCell className="text-center">{score.boardSize}</TableCell>
-                  <TableCell className="text-center">{score.moves}</TableCell>
-                  <TableCell className="text-right">{score.time}</TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
+              {sortedScores.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                    <div className="flex flex-col items-center gap-2">
+                      <ShieldAlert className="w-12 h-12 text-muted-foreground/70" />
+                      <p className="font-body text-lg">The Hall of Champions awaits its first hero!</p>
+                      <p className="font-body text-sm">No scores recorded yet. Be the first to conquer the board!</p>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                sortedScores.map((score, index) => (
+                  <TableRow key={score.id} className="hover:bg-accent/10">
+                    <TableCell className="font-bold text-lg">{index + 1}</TableCell>
+                    <TableCell className="font-medium">{score.username}</TableCell>
+                    <TableCell className="text-center">{score.boardSize}</TableCell>
+                    <TableCell className="text-center">{score.moves}</TableCell>
+                    <TableCell className="text-right">{score.time}</TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
