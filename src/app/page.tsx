@@ -92,7 +92,7 @@ export default function LeaderboardPage() {
                     key={score.id} 
                     className={cn(
                       "hover:bg-accent/10",
-                      index === 0 && sortedScores.length > 1 && "bg-primary/10 dark:bg-primary/20"
+                      index === 0 && sortedScores.length > 1 && "bg-chart-4/20 dark:bg-chart-4/40"
                     )}
                   >
                     <TableCell 
