@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,8 +11,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldQuestion, Play, User, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 type BoardSize = 5 | 6 | 7 | 8;
+
+interface Score {
+  id: string;
+  username: string;
+  time: string; // MM:SS
+  boardSize: string; // NxN
+  moves: number;
+  date: string; // YYYY-MM-DD
+}
+
+const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
 
 export default function GameArea() {
   const [username, setUsername] = useState<string>('');
@@ -21,8 +34,9 @@ export default function GameArea() {
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [gameMessage, setGameMessage] = useState<string>('');
   const [finalTime, setFinalTime] = useState<number | null>(null);
-  const [boardKey, setBoardKey] = useState<number>(0); // To reset board
-  const [timerResetKey, setTimerResetKey] = useState<number>(0); // To reset timer
+  const [boardKey, setBoardKey] = useState<number>(0); 
+  const [timerResetKey, setTimerResetKey] = useState<number>(0);
+  const [lastGameMoves, setLastGameMoves] = useState<number | null>(null);
 
   const { toast } = useToast();
 
@@ -43,11 +57,12 @@ export default function GameArea() {
       return;
     }
     setIsGameActive(true);
-    setIsTimerRunning(false); // Timer starts on first move
+    setIsTimerRunning(false); 
     setGameMessage('Make your first move on the board to start the timer!');
     setFinalTime(null);
-    setBoardKey(prev => prev + 1); // Reset board
-    setTimerResetKey(prev => prev + 1); // Reset timer visuals
+    setLastGameMoves(null);
+    setBoardKey(prev => prev + 1); 
+    setTimerResetKey(prev => prev + 1); 
   };
   
   const handleFirstMove = () => {
@@ -60,49 +75,80 @@ export default function GameArea() {
   const handleGameEnd = (result: { status: 'win' | 'loss'; moves: number }) => {
     setIsGameActive(false);
     setIsTimerRunning(false);
-    // Final time is captured by Timer component's onReset prop, but we need to trigger it.
-    // The timer itself will store its last value. We can grab it on game end.
-    // This might need a ref to Timer or a more robust state lift from Timer.
-    // For now, let's assume the timer stops and 'finalTime' state is updated.
-    // We will use the `onReset` prop of Timer which is called when isRunning becomes false.
+    setLastGameMoves(result.moves); 
+    // The rest of the logic (toast, saving score) will happen in handleTimerReset
+    // after the final time is captured.
+    // We set a preliminary game message here which might be overwritten by handleTimerReset.
+    if (result.status === 'win') {
+      // This message will be updated by handleTimerReset to include time.
+      setGameMessage(`You Win! Calculating final time... Moves: ${result.moves}`);
+    } else {
+      setGameMessage(`Game Over! Your tour ended. Moves: ${result.moves}`);
+    }
   };
   
   const handleTimerReset = (time: number) => {
-    // This function is called by the Timer when it stops or resets.
-    // If the game just ended, this 'time' is the final time.
+    // This function is called by the Timer when it stops or resets (isRunning becomes false).
     if (!isGameActive) { // Game just ended
       setFinalTime(time);
       const minutes = Math.floor(time / 60);
       const seconds = time % 60;
       const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
       
-      if (gameMessage.includes("You Win!")) { // Check if gameMessage was set to win
-         setGameMessage(`Victory! Your tour took ${formattedTime}.`);
+      // Check if gameMessage was set to win by onGameEnd (or a similar indicator)
+      // and ensure lastGameMoves is available
+      if (gameMessage.includes("You Win!") && lastGameMoves !== null) { 
+         const winMessage = `Victory! Your tour on ${selectedBoardSize}x${selectedBoardSize} took ${formattedTime} in ${lastGameMoves} moves.`;
+         setGameMessage(winMessage);
          toast({
            title: "Glorious Victory!",
-           description: `Sir ${username} completed the ${selectedBoardSize}x${selectedBoardSize} tour in ${formattedTime}.`,
+           description: `Sir ${username} completed the ${selectedBoardSize}x${selectedBoardSize} tour in ${formattedTime} (${lastGameMoves} moves). Score saved!`,
            action: <ThumbsUp className="text-green-500" />,
          });
-      } else if (gameMessage.includes("Game Over!")) { // Check if gameMessage was set to loss
-         setGameMessage(`Defeat! Your tour ended after ${gameMessage.split("Moves: ")[1] || 'some'} moves.`);
+
+         // Save score to localStorage
+         const newScore: Score = {
+           id: Date.now().toString(),
+           username: username,
+           time: formattedTime,
+           boardSize: `${selectedBoardSize}x${selectedBoardSize}`,
+           moves: lastGameMoves,
+           date: format(new Date(), 'yyyy-MM-dd'),
+         };
+
+         try {
+           const existingScoresRaw = localStorage.getItem(LOCAL_STORAGE_KEY);
+           const existingScores: Score[] = existingScoresRaw ? JSON.parse(existingScoresRaw) : [];
+           existingScores.push(newScore);
+           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existingScores));
+         } catch (error) {
+           console.error("Failed to save score to localStorage", error);
+           toast({
+             title: "Score Saving Error",
+             description: "Could not save your score. Your glory is known, but not recorded this time.",
+             variant: "destructive"
+           });
+         }
+         setLastGameMoves(null); // Reset for next game.
+
+      } else if (gameMessage.includes("Game Over!")) { 
+         const lossMessage = `Defeat! Your tour on ${selectedBoardSize}x${selectedBoardSize} ended after ${lastGameMoves || 'some'} moves.`;
+         setGameMessage(lossMessage);
          toast({
            title: "Valiant Effort, But...",
            description: `Sir ${username}'s tour on the ${selectedBoardSize}x${selectedBoardSize} board was cut short.`,
            variant: "destructive",
            action: <ThumbsDown className="text-red-500" />,
          });
+         setLastGameMoves(null); // Reset for next game.
       }
     }
   };
   
-  // This effect is to update gameMessage based on internal KnightTourBoard state.
-  // It's tricky because onGameEnd from KnightTourBoard should be the primary source.
   useEffect(() => {
-    if (!isGameActive && finalTime !== null) {
-      // Logic to update gameMessage based on whether it was win or loss
-      // is now handled in handleTimerReset and through onGameEnd callback setting a temp message
-    }
-  }, [isGameActive, finalTime, selectedBoardSize, username]);
+    // This effect is mostly superseded by logic in handleTimerReset
+    // It can be kept for any other updates or removed if handleTimerReset covers all cases.
+  }, [isGameActive, finalTime, gameMessage]);
 
 
   if (!username) {
@@ -181,12 +227,6 @@ export default function GameArea() {
             key={boardKey}
             size={selectedBoardSize}
             onGameEnd={(result) => {
-              // This sets a temporary message, which is then refined by handleTimerReset
-              if (result.status === 'win') {
-                setGameMessage(`You Win! Moves: ${result.moves}`);
-              } else {
-                setGameMessage(`Game Over! Moves: ${result.moves}`);
-              }
               handleGameEnd(result);
             }}
             onMove={handleFirstMove}

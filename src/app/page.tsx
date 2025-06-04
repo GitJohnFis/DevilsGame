@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Crown, ShieldAlert } from "lucide-react";
@@ -12,17 +15,31 @@ interface Score {
   date: string;
 }
 
-// Start with an empty array for scores
-const mockScores: Score[] = [];
+const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
 
 export default function LeaderboardPage() {
-  // Sort scores if any, otherwise keep as empty array
-  const sortedScores = mockScores.length > 0 
-    ? [...mockScores].sort((a,b) => {
+  const [scores, setScores] = useState<Score[]>([]);
+
+  useEffect(() => {
+    const storedScores = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedScores) {
+      try {
+        setScores(JSON.parse(storedScores));
+      } catch (error) {
+        console.error("Failed to parse scores from localStorage", error);
+        setScores([]); // Reset to empty if parsing fails
+      }
+    }
+  }, []);
+
+  const sortedScores = scores.length > 0 
+    ? [...scores].sort((a,b) => {
         const timeA = parseInt(a.time.replace(':',''));
         const timeB = parseInt(b.time.replace(':',''));
         if(timeA !== timeB) return timeA - timeB;
-        return b.moves - a.moves; // Secondary sort by moves if times are same
+        // If times are the same, fewer moves is better (so a.moves - b.moves, but original was b.moves - a.moves)
+        // b.moves - a.moves means higher moves value ranks higher (later in sort). So fewer moves ranks earlier. Correct.
+        return b.moves - a.moves; 
       })
     : [];
 
