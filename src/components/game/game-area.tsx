@@ -10,11 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ScrollText, Play, DoorOpen, RefreshCw, ThumbsDown, PartyPopper, Award } from 'lucide-react';
+import { ScrollText, Play, DoorOpen, RefreshCw, ThumbsDown, PartyPopper, Award, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 type BoardSize = 5 | 6 | 7 | 8;
+type SpeedTier = 'legendary' | 'blazing' | 'normal';
 
 interface Score {
   id: string;
@@ -23,6 +24,13 @@ interface Score {
   boardSize: string; // NxN
   moves: number;
   date: string; // YYYY-MM-DD
+}
+
+interface WinDialogDetails {
+    time: string;
+    moves: number;
+    boardSize: string;
+    speedTier: SpeedTier;
 }
 
 const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
@@ -39,7 +47,7 @@ export default function GameArea() {
   const [timerResetKey, setTimerResetKey] = useState<number>(0);
   const [lastGameMoves, setLastGameMoves] = useState<number | null>(null);
   const [showWinDialog, setShowWinDialog] = useState<boolean>(false);
-  const [winDialogDetails, setWinDialogDetails] = useState<{time: string, moves: number, boardSize: string, isLightningFast: boolean} | null>(null);
+  const [winDialogDetails, setWinDialogDetails] = useState<WinDialogDetails | null>(null);
 
 
   const { toast } = useToast();
@@ -94,38 +102,53 @@ export default function GameArea() {
       const minutes = Math.floor(time / 60);
       const seconds = time % 60;
       const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      const isLightningFast = time < 10;
+      
+      let speedTier: SpeedTier = 'normal';
+      if (time < 7) {
+        speedTier = 'legendary';
+      } else if (time < 10) {
+        speedTier = 'blazing';
+      }
 
       if ((gameMessage.includes("Victory is Yours!") || gameMessage.includes("You Win!")) && lastGameMoves !== null) {
          let currentWinMessage;
          let toastTitle;
          let toastDescription;
-         let toastIconColor = "text-green-500";
+         let toastIcon;
 
-         if (isLightningFast) {
-            currentWinMessage = `Phenomenal Speed! Tour on ${selectedBoardSize}x${selectedBoardSize} completed in ${formattedTime} in ${lastGameMoves} moves. A true legend of the realm!`;
-            toastTitle = "Blazing Victory!";
-            toastDescription = `Sir ${username} has shown legendary speed on the ${selectedBoardSize}x${selectedBoardSize} tour: ${formattedTime} (<10s)!`;
-            toastIconColor = "text-yellow-500"; // Gold for lightning fast
+         const boardSizeDisplay = `${selectedBoardSize}x${selectedBoardSize}`;
+         const movesDisplay = lastGameMoves;
+
+         if (speedTier === 'legendary') {
+            currentWinMessage = `ETHEREAL VELOCITY! Sir ${username}, your sub-7s tour on the ${boardSizeDisplay} board in ${formattedTime} (${movesDisplay} moves) is a feat of legends!`;
+            toastTitle = "ETHEREAL VELOCITY!";
+            toastDescription = `Sir ${username}'s sub-7s tour on ${boardSizeDisplay} (${formattedTime}, ${movesDisplay} moves) is beyond legendary!`;
+            toastIcon = <PartyPopper className="text-red-500" />;
+         } else if (speedTier === 'blazing') {
+            currentWinMessage = `PHENOMENAL SPEED! Sir ${username} has conquered the ${boardSizeDisplay} tour in ${formattedTime} (${movesDisplay} moves)! A true display of swiftness!`;
+            toastTitle = "BLAZING VICTORY!";
+            toastDescription = `Sir ${username} has shown legendary speed on the ${boardSizeDisplay} tour: ${formattedTime} (${movesDisplay} moves)!`;
+            toastIcon = <PartyPopper className="text-yellow-500" />;
          } else {
-            currentWinMessage = `Victory! Your tour on ${selectedBoardSize}x${selectedBoardSize} took ${formattedTime} in ${lastGameMoves} moves. Well fought!`;
-            toastTitle = "Glorious Triumph!";
-            toastDescription = `Sir ${username} completed the ${selectedBoardSize}x${selectedBoardSize} tour in ${formattedTime} (${lastGameMoves} moves). Score recorded!`;
+            currentWinMessage = `VICTORY! Your tour on ${boardSizeDisplay} took ${formattedTime} in ${movesDisplay} moves. Well fought!`;
+            toastTitle = "GLORIOUS TRIUMPH!";
+            toastDescription = `Sir ${username} completed the ${boardSizeDisplay} tour in ${formattedTime} (${movesDisplay} moves). Score recorded!`;
+            toastIcon = <PartyPopper className="text-green-500" />;
          }
          
          setGameMessage(currentWinMessage);
          toast({
            title: toastTitle,
            description: toastDescription,
-           action: <PartyPopper className={toastIconColor} />,
+           action: toastIcon,
          });
 
          const newScore: Score = {
            id: Date.now().toString(),
            username: username,
            time: formattedTime,
-           boardSize: `${selectedBoardSize}x${selectedBoardSize}`,
-           moves: lastGameMoves,
+           boardSize: boardSizeDisplay,
+           moves: movesDisplay,
            date: format(new Date(), 'yyyy-MM-dd'),
          };
 
@@ -142,7 +165,7 @@ export default function GameArea() {
              variant: "destructive"
            });
          }
-         setWinDialogDetails({time: formattedTime, moves: lastGameMoves, boardSize: `${selectedBoardSize}x${selectedBoardSize}`, isLightningFast});
+         setWinDialogDetails({time: formattedTime, moves: movesDisplay, boardSize: boardSizeDisplay, speedTier});
          setShowWinDialog(true);
          setLastGameMoves(null);
 
@@ -232,10 +255,11 @@ export default function GameArea() {
           {gameMessage && (
             <p className={cn(
                 "text-center font-body text-lg p-3 rounded-md border",
-                (gameMessage.includes("Victory") || gameMessage.includes("Phenomenal Speed")) && "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/40 dark:text-green-300 dark:border-green-600/70",
-                gameMessage.includes("Phenomenal Speed") && "text-yellow-700 dark:text-yellow-300 border-yellow-500 dark:border-yellow-600/70 bg-yellow-100 dark:bg-yellow-900/30",
+                gameMessage.includes("ETHEREAL VELOCITY") && "bg-red-100 text-red-800 border-red-400 dark:bg-red-900/40 dark:text-red-300 dark:border-red-600/70",
+                gameMessage.includes("PHENOMENAL SPEED") && !gameMessage.includes("ETHEREAL VELOCITY") && "bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-600/70",
+                gameMessage.includes("VICTORY") && !gameMessage.includes("PHENOMENAL SPEED") && !gameMessage.includes("ETHEREAL VELOCITY") && "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/40 dark:text-green-300 dark:border-green-600/70",
                 (gameMessage.includes("Defeated") || gameMessage.includes("Tour Ended")) && "bg-red-100 text-red-800 border-red-400 dark:bg-red-900/40 dark:text-red-300 dark:border-red-600/70",
-                !(gameMessage.includes("Victory") || gameMessage.includes("Defeated") || gameMessage.includes("Phenomenal Speed") || gameMessage.includes("Tour Ended")) && "bg-accent/10 text-accent-foreground/90 border-accent/30"
+                !(gameMessage.includes("VICTORY") || gameMessage.includes("PHENOMENAL SPEED") || gameMessage.includes("ETHEREAL VELOCITY") || gameMessage.includes("Defeated") || gameMessage.includes("Tour Ended")) && "bg-accent/10 text-accent-foreground/90 border-accent/30"
             )}>
               {gameMessage}
             </p>
@@ -273,30 +297,53 @@ export default function GameArea() {
           <DialogContent className="sm:max-w-md bg-card border-primary shadow-2xl">
             <DialogHeader>
               <DialogTitle className="text-center text-3xl font-headline text-primary flex items-center justify-center gap-3 py-2">
-                <Award className="w-10 h-10 text-yellow-500" />
-                {winDialogDetails.isLightningFast ? "Blazing Speed!" : "Glorious Victory!"}
-                <Award className="w-10 h-10 text-yellow-500" />
+                 {winDialogDetails.speedTier === 'legendary' && <Flame className="w-10 h-10 text-red-500" />}
+                 {(winDialogDetails.speedTier === 'blazing' || winDialogDetails.speedTier === 'normal') && 
+                    <Award className={cn("w-10 h-10", 
+                        winDialogDetails.speedTier === 'blazing' ? "text-yellow-500" : "text-green-500")} 
+                    />
+                 }
+                {winDialogDetails.speedTier === 'legendary' ? "ETHEREAL VELOCITY!" : 
+                 winDialogDetails.speedTier === 'blazing' ? "BLAZING SPEED!" : "GLORIOUS VICTORY!"}
+                {winDialogDetails.speedTier === 'legendary' && <Flame className="w-10 h-10 text-red-500" />}
+                {(winDialogDetails.speedTier === 'blazing' || winDialogDetails.speedTier === 'normal') && 
+                    <Award className={cn("w-10 h-10", 
+                        winDialogDetails.speedTier === 'blazing' ? "text-yellow-500" : "text-green-500")} 
+                    />
+                }
               </DialogTitle>
             </DialogHeader>
             <div className="text-center font-body py-4 space-y-2 text-card-foreground">
               <p className="text-lg">Congratulations, Sir <strong className="text-primary">{username}</strong>!</p>
               
-              {winDialogDetails.isLightningFast ? (
+              {winDialogDetails.speedTier === 'legendary' ? (
+                <p className="text-xl font-bold text-red-600 dark:text-red-400 py-2">
+                  By the comet's tail! Sir {username}, your sub-7-second conquest of the {winDialogDetails.boardSize} battlefield in {winDialogDetails.time} ({winDialogDetails.moves} moves) is a saga for the ages! Mortals can only dream of such celerity!
+                </p>
+              ) : winDialogDetails.speedTier === 'blazing' ? (
                 <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 py-2">
-                  By the Nine Divines! Such speed! You've completed the tour in under 10 seconds! Truly the work of a legendary speedster!
+                  By the Nine Divines! Such speed! Sir {username} completed the {winDialogDetails.boardSize} tour in {winDialogDetails.time} ({winDialogDetails.moves} moves) - under 10 seconds! Truly the work of a legendary speedster!
                 </p>
               ) : (
-                <p>You have masterfully completed the Knight's Tour on the <strong className="text-accent-foreground/90">{winDialogDetails.boardSize}</strong> battlefield.</p>
+                <p>You have masterfully completed the Knight's Tour on the <strong className="text-accent-foreground/90">{winDialogDetails.boardSize}</strong> battlefield in {winDialogDetails.time} ({winDialogDetails.moves} moves).</p>
               )}
 
               <div className="text-base space-y-1 mt-3 pt-3 border-t border-border">
                 <p>Your legendary feat:</p>
-                <p>Time: <strong className={cn("text-accent-foreground/90", winDialogDetails.isLightningFast && "text-yellow-600 dark:text-yellow-400 font-bold")}>{winDialogDetails.time}</strong></p>
+                <p>Time: <strong 
+                    className={cn("text-accent-foreground/90", 
+                        winDialogDetails.speedTier === 'legendary' && "text-red-600 dark:text-red-400 font-bold",
+                        winDialogDetails.speedTier === 'blazing' && "text-yellow-600 dark:text-yellow-400 font-bold"
+                    )}>{winDialogDetails.time}</strong>
+                </p>
                 <p>Moves: <strong className="text-accent-foreground/90">{winDialogDetails.moves}</strong></p>
               </div>
               
-              {!winDialogDetails.isLightningFast && (
+              {winDialogDetails.speedTier === 'normal' && (
                 <p className="mt-4">Your name shall be sung by bards in the Hall of Champions!</p>
+              )}
+               {(winDialogDetails.speedTier === 'legendary' || winDialogDetails.speedTier === 'blazing') && (
+                <p className="mt-4">The entire realm marvels at your blinding speed!</p>
               )}
             </div>
             <DialogFooter className="sm:justify-center pt-4">
@@ -312,3 +359,4 @@ export default function GameArea() {
     </div>
   );
 }
+
