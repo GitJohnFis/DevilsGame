@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Crown, ShieldAlert } from "lucide-react";
 import { cn } from '@/lib/utils';
 
@@ -11,15 +12,17 @@ interface Score {
   id: string;
   username: string;
   time: string;
-  boardSize: string;
+  boardSize: string; // Format "NxN", e.g., "5x5"
   moves: number;
   date: string;
 }
 
 const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
+const BOARD_SIZES = ["5x5", "6x6", "7x7", "8x8"];
 
 export default function LeaderboardPage() {
   const [scores, setScores] = useState<Score[]>([]);
+  const [activeTab, setActiveTab] = useState<string>(BOARD_SIZES[0]); // Default to "5x5"
 
   useEffect(() => {
     const storedScores = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -29,7 +32,6 @@ export default function LeaderboardPage() {
         if (Array.isArray(parsedScores)) {
           setScores(parsedScores);
         } else {
-          // If parsing fails or it's not an array, initialize with empty or default
           console.warn("Invalid scores format in localStorage, resetting.");
           setScores([]); 
         }
@@ -38,11 +40,16 @@ export default function LeaderboardPage() {
         setScores([]); 
       }
     }
-    // No initial mock scores, starts empty if localStorage is empty or invalid
   }, []);
 
-  const sortedScores = scores.length > 0 
-    ? [...scores].sort((a,b) => {
+  const scoresForActiveTab = useMemo(() => {
+    return scores.filter(score => score.boardSize === activeTab);
+  }, [scores, activeTab]);
+
+  const sortedScores = useMemo(() => {
+    if (scoresForActiveTab.length === 0) return [];
+    
+    return [...scoresForActiveTab].sort((a,b) => {
         const timeToSeconds = (timeStr: string) => {
           const [minutes, seconds] = timeStr.split(':').map(Number);
           return minutes * 60 + seconds;
@@ -50,13 +57,10 @@ export default function LeaderboardPage() {
         const timeA = timeToSeconds(a.time);
         const timeB = timeToSeconds(b.time);
         
-        // Sort by time ascending (lower is better)
         if(timeA !== timeB) return timeA - timeB; 
-        
-        // If times are equal, sort by moves ascending (fewer moves is better)
         return a.moves - b.moves; 
-      })
-    : [];
+      });
+  }, [scoresForActiveTab]);
 
   return (
     <div className="space-y-8">
@@ -65,22 +69,32 @@ export default function LeaderboardPage() {
           <Crown className="w-10 h-10 sm:w-12 sm:h-12" /> Hall of Champions <Crown className="w-10 h-10 sm:w-12 sm:h-12" />
         </h1>
         <p className="text-lg text-muted-foreground font-body">
-          Behold the mightiest knights and their glorious tour times!
+          Behold the mightiest knights and their glorious tour times on various battlefields!
         </p>
       </header>
 
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Top Knights</CardTitle>
-          <CardDescription className="font-body">Current standings in the grand tour.</CardDescription>
+          <CardTitle className="font-headline text-2xl">Top Knights - {activeTab} Board</CardTitle>
+          <CardDescription className="font-body">Current standings for the {activeTab} tour.</CardDescription>
         </CardHeader>
         <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              {BOARD_SIZES.map(size => (
+                <TabsTrigger key={size} value={size} className="font-headline text-base">
+                  {size}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="font-headline text-base">Rank</TableHead>
                 <TableHead className="font-headline text-base">Username</TableHead>
-                <TableHead className="font-headline text-base text-center">Board Size</TableHead>
+                {/* Board Size column is no longer needed as it's per tab */}
                 <TableHead className="font-headline text-base text-center">Moves</TableHead>
                 <TableHead className="font-headline text-base text-right">Time</TableHead>
                 <TableHead className="font-headline text-base text-right">Date</TableHead>
@@ -89,11 +103,11 @@ export default function LeaderboardPage() {
             <TableBody>
               {sortedScores.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                     <div className="flex flex-col items-center gap-2">
                       <ShieldAlert className="w-12 h-12 text-muted-foreground/70" />
-                      <p className="font-body text-lg">The Hall of Champions awaits its first hero!</p>
-                      <p className="font-body text-sm">No scores recorded yet. Be the first to conquer the board!</p>
+                      <p className="font-body text-lg">The Hall of Champions for the {activeTab} board awaits its first hero!</p>
+                      <p className="font-body text-sm">No scores recorded yet for this board size.</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -103,13 +117,13 @@ export default function LeaderboardPage() {
                     key={score.id} 
                     className={cn(
                       "hover:bg-accent/10",
-                      index === 0 && sortedScores.length > 1 && "bg-chart-4/20 dark:bg-chart-4/40" // Highlight for top player if more than one score
+                      index === 0 && sortedScores.length > 1 && "bg-chart-4/20 dark:bg-chart-4/40"
                     )}
                   >
                     <TableCell 
                       className={cn(
-                        "font-medium text-lg text-center", // Centered for the icon/number
-                        index === 0 && sortedScores.length > 1 && "font-bold text-primary" // Primary color and bold for rank/icon if top and more than one score
+                        "font-medium text-lg text-center",
+                        index === 0 && sortedScores.length > 1 && "font-bold text-primary"
                       )}
                     >
                       {index === 0 && sortedScores.length > 1 ? (
@@ -121,12 +135,11 @@ export default function LeaderboardPage() {
                     <TableCell 
                       className={cn(
                         "font-medium",
-                        index === 0 && sortedScores.length > 1 && "font-bold" // Bold username for top player if more than one score
+                        index === 0 && sortedScores.length > 1 && "font-bold"
                       )}
                     >
                       {score.username}
                     </TableCell>
-                    <TableCell className="text-center">{score.boardSize}</TableCell>
                     <TableCell className="text-center">{score.moves}</TableCell>
                     <TableCell className="text-right">{score.time}</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
