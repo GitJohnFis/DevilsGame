@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Crown, ShieldAlert } from "lucide-react";
+import { cn } from '@/lib/utils';
 
 interface Score {
   id: string;
@@ -27,19 +28,22 @@ export default function LeaderboardPage() {
         setScores(JSON.parse(storedScores));
       } catch (error) {
         console.error("Failed to parse scores from localStorage", error);
-        setScores([]); // Reset to empty if parsing fails
+        setScores([]); 
       }
     }
   }, []);
 
   const sortedScores = scores.length > 0 
     ? [...scores].sort((a,b) => {
-        const timeA = parseInt(a.time.replace(':',''));
-        const timeB = parseInt(b.time.replace(':',''));
-        if(timeA !== timeB) return timeA - timeB;
-        // If times are the same, fewer moves is better (so a.moves - b.moves, but original was b.moves - a.moves)
-        // b.moves - a.moves means higher moves value ranks higher (later in sort). So fewer moves ranks earlier. Correct.
-        return b.moves - a.moves; 
+        const timeToSeconds = (timeStr: string) => {
+          const [minutes, seconds] = timeStr.split(':').map(Number);
+          return minutes * 60 + seconds;
+        };
+        const timeA = timeToSeconds(a.time);
+        const timeB = timeToSeconds(b.time);
+        
+        if(timeA !== timeB) return timeA - timeB; 
+        return a.moves - b.moves; // Fewer moves is better
       })
     : [];
 
@@ -84,9 +88,32 @@ export default function LeaderboardPage() {
                 </TableRow>
               ) : (
                 sortedScores.map((score, index) => (
-                  <TableRow key={score.id} className="hover:bg-accent/10">
-                    <TableCell className="font-bold text-lg">{index + 1}</TableCell>
-                    <TableCell className="font-medium">{score.username}</TableCell>
+                  <TableRow 
+                    key={score.id} 
+                    className={cn(
+                      "hover:bg-accent/10",
+                      index === 0 && sortedScores.length > 1 && "bg-primary/10 dark:bg-primary/20"
+                    )}
+                  >
+                    <TableCell 
+                      className={cn(
+                        "font-bold text-lg",
+                        index === 0 && sortedScores.length > 1 && "text-primary"
+                      )}
+                    >
+                      {index === 0 && sortedScores.length > 1 && (
+                        <Crown className="w-5 h-5 inline-block mr-1.5 text-yellow-500" />
+                      )}
+                      {index + 1}
+                    </TableCell>
+                    <TableCell 
+                      className={cn(
+                        "font-medium",
+                        index === 0 && sortedScores.length > 1 && "font-bold"
+                      )}
+                    >
+                      {score.username}
+                    </TableCell>
                     <TableCell className="text-center">{score.boardSize}</TableCell>
                     <TableCell className="text-center">{score.moves}</TableCell>
                     <TableCell className="text-right">{score.time}</TableCell>
