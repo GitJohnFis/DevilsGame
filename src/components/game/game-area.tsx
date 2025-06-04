@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldQuestion, Play, User, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ShieldQuestion, Play, User, RefreshCw, ThumbsUp, ThumbsDown, PartyPopper, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -34,9 +35,12 @@ export default function GameArea() {
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [gameMessage, setGameMessage] = useState<string>('');
   const [finalTime, setFinalTime] = useState<number | null>(null);
-  const [boardKey, setBoardKey] = useState<number>(0); 
+  const [boardKey, setBoardKey] = useState<number>(0);
   const [timerResetKey, setTimerResetKey] = useState<number>(0);
   const [lastGameMoves, setLastGameMoves] = useState<number | null>(null);
+  const [showWinDialog, setShowWinDialog] = useState<boolean>(false);
+  const [winDialogDetails, setWinDialogDetails] = useState<{time: string, moves: number, boardSize: string} | null>(null);
+
 
   const { toast } = useToast();
 
@@ -57,14 +61,15 @@ export default function GameArea() {
       return;
     }
     setIsGameActive(true);
-    setIsTimerRunning(false); 
+    setIsTimerRunning(false);
     setGameMessage('Make your first move on the board to start the timer!');
     setFinalTime(null);
     setLastGameMoves(null);
-    setBoardKey(prev => prev + 1); 
-    setTimerResetKey(prev => prev + 1); 
+    setBoardKey(prev => prev + 1);
+    setTimerResetKey(prev => prev + 1);
+    setShowWinDialog(false);
   };
-  
+
   const handleFirstMove = () => {
     if (isGameActive && !isTimerRunning) {
       setIsTimerRunning(true);
@@ -75,29 +80,22 @@ export default function GameArea() {
   const handleGameEnd = (result: { status: 'win' | 'loss'; moves: number }) => {
     setIsGameActive(false);
     setIsTimerRunning(false);
-    setLastGameMoves(result.moves); 
-    // The rest of the logic (toast, saving score) will happen in handleTimerReset
-    // after the final time is captured.
-    // We set a preliminary game message here which might be overwritten by handleTimerReset.
+    setLastGameMoves(result.moves);
     if (result.status === 'win') {
-      // This message will be updated by handleTimerReset to include time.
       setGameMessage(`You Win! Calculating final time... Moves: ${result.moves}`);
     } else {
       setGameMessage(`Game Over! Your tour ended. Moves: ${result.moves}`);
     }
   };
-  
+
   const handleTimerReset = (time: number) => {
-    // This function is called by the Timer when it stops or resets (isRunning becomes false).
-    if (!isGameActive) { // Game just ended
+    if (!isGameActive) { 
       setFinalTime(time);
       const minutes = Math.floor(time / 60);
       const seconds = time % 60;
       const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      
-      // Check if gameMessage was set to win by onGameEnd (or a similar indicator)
-      // and ensure lastGameMoves is available
-      if (gameMessage.includes("You Win!") && lastGameMoves !== null) { 
+
+      if (gameMessage.includes("You Win!") && lastGameMoves !== null) {
          const winMessage = `Victory! Your tour on ${selectedBoardSize}x${selectedBoardSize} took ${formattedTime} in ${lastGameMoves} moves.`;
          setGameMessage(winMessage);
          toast({
@@ -106,7 +104,6 @@ export default function GameArea() {
            action: <ThumbsUp className="text-green-500" />,
          });
 
-         // Save score to localStorage
          const newScore: Score = {
            id: Date.now().toString(),
            username: username,
@@ -129,9 +126,11 @@ export default function GameArea() {
              variant: "destructive"
            });
          }
-         setLastGameMoves(null); // Reset for next game.
+         setWinDialogDetails({time: formattedTime, moves: lastGameMoves, boardSize: `${selectedBoardSize}x${selectedBoardSize}`});
+         setShowWinDialog(true);
+         setLastGameMoves(null);
 
-      } else if (gameMessage.includes("Game Over!")) { 
+      } else if (gameMessage.includes("Game Over!")) {
          const lossMessage = `Defeat! Your tour on ${selectedBoardSize}x${selectedBoardSize} ended after ${lastGameMoves || 'some'} moves.`;
          setGameMessage(lossMessage);
          toast({
@@ -140,14 +139,12 @@ export default function GameArea() {
            variant: "destructive",
            action: <ThumbsDown className="text-red-500" />,
          });
-         setLastGameMoves(null); // Reset for next game.
+         setLastGameMoves(null); 
       }
     }
   };
-  
+
   useEffect(() => {
-    // This effect is mostly superseded by logic in handleTimerReset
-    // It can be kept for any other updates or removed if handleTimerReset covers all cases.
   }, [isGameActive, finalTime, gameMessage]);
 
 
@@ -215,8 +212,8 @@ export default function GameArea() {
           {gameMessage && (
             <p className={cn(
                 "text-center font-body text-lg p-3 rounded-md",
-                gameMessage.includes("Victory") && "bg-green-100 text-green-700 border border-green-300",
-                gameMessage.includes("Defeat") && "bg-red-100 text-red-700 border border-red-300",
+                gameMessage.includes("Victory") && "bg-green-100 text-green-700 border border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-500/50",
+                gameMessage.includes("Defeat") && "bg-red-100 text-red-700 border border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-500/50",
                 !gameMessage.includes("Victory") && !gameMessage.includes("Defeat") && "bg-accent/20 text-accent-foreground/80 border border-accent/30"
             )}>
               {gameMessage}
@@ -249,6 +246,39 @@ export default function GameArea() {
           <p className="font-bold text-primary">Good luck, noble knight!</p>
         </CardContent>
       </Card>
+
+      {winDialogDetails && (
+        <Dialog open={showWinDialog} onOpenChange={setShowWinDialog}>
+          <DialogContent className="sm:max-w-md bg-card border-primary shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-center text-3xl font-headline text-primary flex items-center justify-center gap-3 py-2">
+                <Award className="w-10 h-10 text-yellow-500" />
+                Glorious Victory!
+                <Award className="w-10 h-10 text-yellow-500" />
+              </DialogTitle>
+            </DialogHeader>
+            <div className="text-center font-body py-4 space-y-2 text-card-foreground">
+              <p className="text-lg">Congratulations, Sir <strong className="text-primary">{username}</strong>!</p>
+              <p>You have masterfully completed the Knight's Tour on the <strong className="text-accent-foreground/90">{winDialogDetails.boardSize}</strong> battlefield.</p>
+              <div className="text-base space-y-1 mt-3 pt-3 border-t border-border">
+                <p>Your legendary feat:</p>
+                <p>Time: <strong className="text-accent-foreground/90">{winDialogDetails.time}</strong></p>
+                <p>Moves: <strong className="text-accent-foreground/90">{winDialogDetails.moves}</strong></p>
+              </div>
+              <p className="mt-4">Your name shall be sung by bards in the Hall of Champions!</p>
+            </div>
+            <DialogFooter className="sm:justify-center pt-4">
+              <DialogClose asChild>
+                <Button type="button" variant="default" className="font-headline text-lg px-6 py-3">
+                  Huzzah!
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+
+    
