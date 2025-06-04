@@ -29,13 +29,16 @@ export default function LeaderboardPage() {
         if (Array.isArray(parsedScores)) {
           setScores(parsedScores);
         } else {
-          setScores([]);
+          // If parsing fails or it's not an array, initialize with empty or default
+          console.warn("Invalid scores format in localStorage, resetting.");
+          setScores([]); 
         }
       } catch (error) {
         console.error("Failed to parse scores from localStorage", error);
         setScores([]); 
       }
     }
+    // No initial mock scores, starts empty if localStorage is empty or invalid
   }, []);
 
   const sortedScores = scores.length > 0 
@@ -47,8 +50,11 @@ export default function LeaderboardPage() {
         const timeA = timeToSeconds(a.time);
         const timeB = timeToSeconds(b.time);
         
+        // Sort by time ascending (lower is better)
         if(timeA !== timeB) return timeA - timeB; 
-        return a.moves - b.moves; // Fewer moves is better
+        
+        // If times are equal, sort by moves ascending (fewer moves is better)
+        return a.moves - b.moves; 
       })
     : [];
 
@@ -97,13 +103,13 @@ export default function LeaderboardPage() {
                     key={score.id} 
                     className={cn(
                       "hover:bg-accent/10",
-                      index === 0 && sortedScores.length > 1 && "bg-chart-4/20 dark:bg-chart-4/40"
+                      index === 0 && sortedScores.length > 1 && "bg-chart-4/20 dark:bg-chart-4/40" // Highlight for top player if more than one score
                     )}
                   >
                     <TableCell 
                       className={cn(
-                        "font-bold text-lg text-center", // Centered for the icon/number
-                        index === 0 && sortedScores.length > 1 && "text-primary" // Primary color for rank/icon if top
+                        "font-medium text-lg text-center", // Centered for the icon/number
+                        index === 0 && sortedScores.length > 1 && "font-bold text-primary" // Primary color and bold for rank/icon if top and more than one score
                       )}
                     >
                       {index === 0 && sortedScores.length > 1 ? (
@@ -115,7 +121,7 @@ export default function LeaderboardPage() {
                     <TableCell 
                       className={cn(
                         "font-medium",
-                        index === 0 && sortedScores.length > 1 && "font-bold" // Bold username for top player
+                        index === 0 && sortedScores.length > 1 && "font-bold" // Bold username for top player if more than one score
                       )}
                     >
                       {score.username}
