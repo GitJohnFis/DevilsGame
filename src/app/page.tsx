@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Crown, ShieldAlert, Loader2, Zap } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 
 interface Score {
@@ -80,113 +81,123 @@ export default function LeaderboardPage() {
   }, [scoresForActiveTab]);
 
   return (
-    <div className="space-y-8">
-      <header className="text-center space-y-2">
-        <h1 className="text-4xl sm:text-5xl font-headline text-primary flex items-center justify-center gap-3">
-          <Crown className="w-10 h-10 sm:w-12 sm:h-12" /> Hall of Champions <Crown className="w-10 h-10 sm:w-12 sm:h-12" />
-        </h1>
-        <p className="text-lg text-muted-foreground font-body">
-          Behold the mightiest knights and their glorious tour times on various battlefields!
-        </p>
-      </header>
+    <TooltipProvider>
+      <div className="space-y-8">
+        <header className="text-center space-y-2">
+          <h1 className="text-4xl sm:text-5xl font-headline text-primary flex items-center justify-center gap-3">
+            <Crown className="w-10 h-10 sm:w-12 sm:h-12" /> Hall of Champions <Crown className="w-10 h-10 sm:w-12 sm:h-12" />
+          </h1>
+          <p className="text-lg text-muted-foreground font-body">
+            Behold the mightiest knights and their glorious tour times on various battlefields!
+          </p>
+        </header>
 
-      <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Top Knights - {activeTab} Board</CardTitle>
-          <CardDescription className="font-body">Current standings for the {activeTab} tour.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-              {BOARD_SIZES.map(size => (
-                <TabsTrigger key={size} value={size} className="font-headline text-base">
-                  {size}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle className="font-headline text-2xl">Top Knights - {activeTab} Board</CardTitle>
+            <CardDescription className="font-body">Current standings for the {activeTab} tour.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                {BOARD_SIZES.map(size => (
+                  <TabsTrigger key={size} value={size} className="font-headline text-base">
+                    {size}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
 
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-3">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="font-body text-lg text-muted-foreground">Loading champions' deeds...</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-headline text-base">Rank</TableHead>
-                  <TableHead className="font-headline text-base">Username</TableHead>
-                  <TableHead className="font-headline text-base text-center">Moves</TableHead>
-                  <TableHead className="font-headline text-base text-right">Time</TableHead>
-                  <TableHead className="font-headline text-base text-right">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedScores.length === 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="font-body text-lg text-muted-foreground">Loading champions' deeds...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      <div className="flex flex-col items-center gap-2">
-                        <ShieldAlert className="w-12 h-12 text-muted-foreground/70" />
-                        <p className="font-body text-lg">The Hall of Champions for the {activeTab} board awaits its first hero!</p>
-                        <p className="font-body text-sm">No scores recorded yet for this board size.</p>
-                      </div>
-                    </TableCell>
+                    <TableHead className="font-headline text-base">Rank</TableHead>
+                    <TableHead className="font-headline text-base">Username</TableHead>
+                    <TableHead className="font-headline text-base text-center">Moves</TableHead>
+                    <TableHead className="font-headline text-base text-right">Time</TableHead>
+                    <TableHead className="font-headline text-base text-right">Date</TableHead>
                   </TableRow>
-                ) : (
-                  sortedScores.map((score, index) => {
-                    const isTopPlayer = index === 0 && sortedScores.length > 1;
-                    const isSub10Sec = timeToSeconds(score.time) < 10;
+                </TableHeader>
+                <TableBody>
+                  {sortedScores.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                        <div className="flex flex-col items-center gap-2">
+                          <ShieldAlert className="w-12 h-12 text-muted-foreground/70" />
+                          <p className="font-body text-lg">The Hall of Champions for the {activeTab} board awaits its first hero!</p>
+                          <p className="font-body text-sm">No scores recorded yet for this board size.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    sortedScores.map((score, index) => {
+                      const isTopPlayer = index === 0 && sortedScores.length > 1;
+                      const isSub10Sec = timeToSeconds(score.time) < 10;
 
-                    return (
-                      <TableRow 
-                        key={score.id} 
-                        className={cn(
-                          "hover:bg-accent/10",
-                          isTopPlayer && "bg-chart-4/20 dark:bg-chart-4/40"
-                        )}
-                      >
-                        <TableCell 
+                      return (
+                        <TableRow 
+                          key={score.id} 
                           className={cn(
-                            "font-medium text-lg text-center",
-                            isTopPlayer && "font-bold text-primary"
+                            "hover:bg-accent/10",
+                            isTopPlayer && "bg-chart-4/20 dark:bg-chart-4/40"
                           )}
                         >
-                          {isTopPlayer ? (
-                            <Crown className="w-6 h-6 text-yellow-500 inline-block" />
-                          ) : (
-                            index + 1
-                          )}
-                        </TableCell>
-                        <TableCell 
-                          className={cn(
-                            "font-medium",
-                            isTopPlayer && "font-bold",
-                            isSub10Sec && "group" // Apply group class only for sub-10-sec players
-                          )}
-                        >
-                          <span className={cn(
-                            "inline-block transition-colors duration-150",
-                            isSub10Sec && "group-hover:text-yellow-500 group-hover:animate-shock-effect" // Apply hover effects only for sub-10-sec players
-                           )}
+                          <TableCell 
+                            className={cn(
+                              "font-medium text-lg text-center",
+                              isTopPlayer && "font-bold text-primary"
+                            )}
                           >
-                           {score.username}
-                          </span>
-                          {isSub10Sec && <Zap className="w-4 h-4 inline-block ml-1 text-yellow-500" aria-label="Sub 10 second badge" />}
-                        </TableCell>
-                        <TableCell className="text-center">{score.moves}</TableCell>
-                        <TableCell className="text-right">{score.time}</TableCell>
-                        <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                            {isTopPlayer ? (
+                              <Crown className="w-6 h-6 text-yellow-500 inline-block" />
+                            ) : (
+                              index + 1
+                            )}
+                          </TableCell>
+                          <TableCell 
+                            className={cn(
+                              "font-medium",
+                              isTopPlayer && "font-bold",
+                              isSub10Sec && "group"
+                            )}
+                          >
+                            <span className={cn(
+                              "inline-block transition-colors duration-150",
+                              isSub10Sec && "group-hover:text-yellow-500 group-hover:animate-shock-effect"
+                             )}
+                            >
+                             {score.username}
+                            </span>
+                            {isSub10Sec && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Zap className="w-4 h-4 inline-block ml-1 text-yellow-500" aria-label="Sub 10 second badge" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>SUB-10s</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">{score.moves}</TableCell>
+                          <TableCell className="text-right">{score.time}</TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 }
-
