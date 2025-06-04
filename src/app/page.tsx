@@ -25,7 +25,12 @@ export default function LeaderboardPage() {
     const storedScores = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedScores) {
       try {
-        setScores(JSON.parse(storedScores));
+        const parsedScores = JSON.parse(storedScores);
+        if (Array.isArray(parsedScores)) {
+          setScores(parsedScores);
+        } else {
+          setScores([]);
+        }
       } catch (error) {
         console.error("Failed to parse scores from localStorage", error);
         setScores([]); 
@@ -97,19 +102,20 @@ export default function LeaderboardPage() {
                   >
                     <TableCell 
                       className={cn(
-                        "font-bold text-lg",
-                        index === 0 && sortedScores.length > 1 && "text-primary"
+                        "font-bold text-lg text-center", // Centered for the icon/number
+                        index === 0 && sortedScores.length > 1 && "text-primary" // Primary color for rank/icon if top
                       )}
                     >
-                      {index === 0 && sortedScores.length > 1 && (
-                        <Crown className="w-5 h-5 inline-block mr-1.5 text-yellow-500" />
+                      {index === 0 && sortedScores.length > 1 ? (
+                        <Crown className="w-6 h-6 text-yellow-500 inline-block" />
+                      ) : (
+                        index + 1
                       )}
-                      {index + 1}
                     </TableCell>
                     <TableCell 
                       className={cn(
                         "font-medium",
-                        index === 0 && sortedScores.length > 1 && "font-bold"
+                        index === 0 && sortedScores.length > 1 && "font-bold" // Bold username for top player
                       )}
                     >
                       {score.username}
