@@ -88,10 +88,18 @@ export default {
             height: '0',
           },
         },
+        'shock_effect': {
+          '0%': { transform: 'scale(1) rotate(0deg)' },
+          '25%': { transform: 'scale(1.15) rotate(-5deg)' },
+          '50%': { transform: 'scale(0.9) rotate(5deg)' },
+          '75%': { transform: 'scale(1.05) rotate(-2deg)' },
+          '100%': { transform: 'scale(1) rotate(0deg)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'shock-effect': 'shock_effect 0.3s cubic-bezier(0.250, 0.460, 0.450, 0.940) both',
       },
     },
   },

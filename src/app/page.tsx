@@ -21,7 +21,7 @@ const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
 const BOARD_SIZES = ["5x5", "6x6", "7x7", "8x8"];
 
 const timeToSeconds = (timeStr: string): number => {
-  if (!timeStr || !timeStr.includes(':')) return Infinity; // Handle potential malformed data
+  if (!timeStr || !timeStr.includes(':')) return Infinity; 
   const parts = timeStr.split(':');
   if (parts.length !== 2) return Infinity;
   const minutes = parseInt(parts[0], 10);
@@ -160,11 +160,13 @@ export default function LeaderboardPage() {
                         </TableCell>
                         <TableCell 
                           className={cn(
-                            "font-medium",
+                            "font-medium group", // Added group here
                             isTopPlayer && "font-bold"
                           )}
                         >
-                          {score.username}
+                          <span className="inline-block group-hover:text-yellow-500 group-hover:animate-shock-effect transition-colors duration-150">
+                           {score.username}
+                          </span>
                           {isSub10Sec && <Zap className="w-4 h-4 inline-block ml-1 text-yellow-500" aria-label="Sub 10 second badge" />}
                         </TableCell>
                         <TableCell className="text-center">{score.moves}</TableCell>
