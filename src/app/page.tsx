@@ -138,7 +138,10 @@ export default function LeaderboardPage() {
                   ) : (
                     sortedScores.map((score, index) => {
                       const isTopPlayer = index === 0 && sortedScores.length > 1;
-                      const isSub10Sec = timeToSeconds(score.time) < 10;
+                      const timeInSeconds = timeToSeconds(score.time);
+                      const isSub7Sec = timeInSeconds < 7;
+                      const isSub10Sec = timeInSeconds < 10 && !isSub7Sec; // Only sub-10 if not already sub-7
+                      const hasSpecialBadge = isSub7Sec || isSub10Sec;
 
                       return (
                         <TableRow 
@@ -164,16 +167,27 @@ export default function LeaderboardPage() {
                             className={cn(
                               "font-medium",
                               isTopPlayer && "font-bold",
-                              isSub10Sec && "group"
+                              hasSpecialBadge && "group"
                             )}
                           >
                             <span className={cn(
                               "inline-block transition-colors duration-150",
+                              isSub7Sec && "group-hover:text-red-600 group-hover:animate-shock-effect",
                               isSub10Sec && "group-hover:text-yellow-500 group-hover:animate-shock-effect"
                              )}
                             >
                              {score.username}
                             </span>
+                            {isSub7Sec && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Zap className="w-4 h-4 inline-block ml-1 text-red-600" aria-label="Sub 7 second badge" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>SUB-7s</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                             {isSub10Sec && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
