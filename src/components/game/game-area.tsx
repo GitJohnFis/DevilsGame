@@ -7,10 +7,10 @@ import Timer from './timer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldQuestion, Play, User, RefreshCw, ThumbsUp, ThumbsDown, PartyPopper, Award } from 'lucide-react';
+import { ScrollText, Play, DoorOpen, RefreshCw, ThumbsDown, PartyPopper, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -48,21 +48,21 @@ export default function GameArea() {
     e.preventDefault();
     if (tempUsername.trim()) {
       setUsername(tempUsername.trim());
-      toast({ title: `Welcome, Sir ${tempUsername.trim()}!`, description: "Choose your challenge and begin the tour." });
-      setGameMessage("Select board size and start your conquest!");
+      toast({ title: `Welcome, Sir ${tempUsername.trim()}!`, description: "The Proving Grounds await your skill." });
+      setGameMessage("Select your challenge and begin the tour!");
     } else {
-      toast({ title: "A Knight Needs A Name!", description: "Please enter your noble title.", variant: "destructive" });
+      toast({ title: "A Knight Needs A Name!", description: "Please declare your noble title to proceed.", variant: "destructive" });
     }
   };
 
   const handleStartGame = () => {
     if (!username) {
-      toast({ title: "Enter Username", description: "A knight must declare their name before embarking on a quest!", variant: "destructive" });
+      toast({ title: "Declare Your Name!", description: "A knight must be known before entering the arena!", variant: "destructive" });
       return;
     }
     setIsGameActive(true);
     setIsTimerRunning(false);
-    setGameMessage('Make your first move on the board to start the timer!');
+    setGameMessage('Make your first move on the board to start the timer and your quest!');
     setFinalTime(null);
     setLastGameMoves(null);
     setBoardKey(prev => prev + 1);
@@ -73,7 +73,7 @@ export default function GameArea() {
   const handleFirstMove = () => {
     if (isGameActive && !isTimerRunning) {
       setIsTimerRunning(true);
-      setGameMessage("The tour has begun! Good luck, brave knight.");
+      setGameMessage("The tour has begun! May your path be true, brave knight.");
     }
   };
 
@@ -82,9 +82,9 @@ export default function GameArea() {
     setIsTimerRunning(false);
     setLastGameMoves(result.moves);
     if (result.status === 'win') {
-      setGameMessage(`You Win! Calculating final time... Moves: ${result.moves}`);
+      setGameMessage(`Victory is Yours! Calculating final time... Total Moves: ${result.moves}`);
     } else {
-      setGameMessage(`Game Over! Your tour ended. Moves: ${result.moves}`);
+      setGameMessage(`Tour Ended. A valiant effort, nonetheless. Total Moves: ${result.moves}`);
     }
   };
 
@@ -96,21 +96,21 @@ export default function GameArea() {
       const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
       const isLightningFast = time < 10;
 
-      if (gameMessage.includes("You Win!") && lastGameMoves !== null) {
+      if ((gameMessage.includes("Victory is Yours!") || gameMessage.includes("You Win!")) && lastGameMoves !== null) {
          let currentWinMessage;
          let toastTitle;
          let toastDescription;
          let toastIconColor = "text-green-500";
 
          if (isLightningFast) {
-            currentWinMessage = `Incredible Speed! Tour on ${selectedBoardSize}x${selectedBoardSize} completed in ${formattedTime} in ${lastGameMoves} moves. A true legend!`;
-            toastTitle = "Lightning Fast Victory!";
-            toastDescription = `Sir ${username} blazed through the ${selectedBoardSize}x${selectedBoardSize} tour in ${formattedTime} (<10s)! Phenomenal!`;
-            toastIconColor = "text-yellow-500";
+            currentWinMessage = `Phenomenal Speed! Tour on ${selectedBoardSize}x${selectedBoardSize} completed in ${formattedTime} in ${lastGameMoves} moves. A true legend of the realm!`;
+            toastTitle = "Blazing Victory!";
+            toastDescription = `Sir ${username} has shown legendary speed on the ${selectedBoardSize}x${selectedBoardSize} tour: ${formattedTime} (<10s)!`;
+            toastIconColor = "text-yellow-500"; // Gold for lightning fast
          } else {
-            currentWinMessage = `Victory! Your tour on ${selectedBoardSize}x${selectedBoardSize} took ${formattedTime} in ${lastGameMoves} moves.`;
-            toastTitle = "Glorious Victory!";
-            toastDescription = `Sir ${username} completed the ${selectedBoardSize}x${selectedBoardSize} tour in ${formattedTime} (${lastGameMoves} moves). Score saved!`;
+            currentWinMessage = `Victory! Your tour on ${selectedBoardSize}x${selectedBoardSize} took ${formattedTime} in ${lastGameMoves} moves. Well fought!`;
+            toastTitle = "Glorious Triumph!";
+            toastDescription = `Sir ${username} completed the ${selectedBoardSize}x${selectedBoardSize} tour in ${formattedTime} (${lastGameMoves} moves). Score recorded!`;
          }
          
          setGameMessage(currentWinMessage);
@@ -137,8 +137,8 @@ export default function GameArea() {
          } catch (error) {
            console.error("Failed to save score to localStorage", error);
            toast({
-             title: "Score Saving Error",
-             description: "Could not save your score. Your glory is known, but not recorded this time.",
+             title: "Score Saving Hiccup",
+             description: "Your heroic deed is known, but alas, could not be etched into the records this time.",
              variant: "destructive"
            });
          }
@@ -146,12 +146,12 @@ export default function GameArea() {
          setShowWinDialog(true);
          setLastGameMoves(null);
 
-      } else if (gameMessage.includes("Game Over!")) {
-         const lossMessage = `Defeat! Your tour on ${selectedBoardSize}x${selectedBoardSize} ended after ${lastGameMoves || 'some'} moves.`;
+      } else if (gameMessage.includes("Tour Ended")) {
+         const lossMessage = `Defeated! Your tour on ${selectedBoardSize}x${selectedBoardSize} ended after ${lastGameMoves || 'some'} moves. Another attempt awaits!`;
          setGameMessage(lossMessage);
          toast({
-           title: "Valiant Effort, But...",
-           description: `Sir ${username}'s tour on the ${selectedBoardSize}x${selectedBoardSize} board was cut short.`,
+           title: "A Noble Attempt...",
+           description: `Sir ${username}'s tour on the ${selectedBoardSize}x${selectedBoardSize} board was cut short. The kingdom awaits your return!`,
            variant: "destructive",
            action: <ThumbsDown className="text-red-500" />,
          });
@@ -166,10 +166,14 @@ export default function GameArea() {
 
   if (!username) {
     return (
-      <Card className="max-w-md mx-auto shadow-xl">
+      <Card className="max-w-md mx-auto shadow-xl border-primary/50">
         <CardHeader>
-          <CardTitle className="font-headline text-3xl text-center flex items-center justify-center gap-2"><User /> Declare Thyself, Knight!</CardTitle>
-          <CardDescription className="font-body text-center">Enter your noble name to begin your legendary tour.</CardDescription>
+          <CardTitle className="font-headline text-3xl text-center flex items-center justify-center gap-2">
+            <DoorOpen className="w-8 h-8 text-primary" /> Halt! Who Goes There?
+          </CardTitle>
+          <CardDescription className="font-body text-center text-muted-foreground/90 pt-1">
+            Declare your noble name to enter these hallowed Proving Grounds and prove your mettle.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUsernameSubmit} className="space-y-4">
@@ -177,12 +181,12 @@ export default function GameArea() {
               type="text"
               value={tempUsername}
               onChange={(e) => setTempUsername(e.target.value)}
-              placeholder="e.g., Sir Reginald"
+              placeholder="e.g., Sir Lancelot"
               className="text-center text-lg h-12"
               aria-label="Enter your username"
             />
             <Button type="submit" className="w-full text-lg h-12 font-headline">
-              <Play className="mr-2" /> Venture Forth
+              <Play className="mr-2" /> Enter the Proving Grounds
             </Button>
           </form>
         </CardContent>
@@ -192,21 +196,21 @@ export default function GameArea() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-xl">
+      <Card className="shadow-xl border-primary/50">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <CardTitle className="font-headline text-3xl">Knight's Quest: The Grand Tour</CardTitle>
+            <CardTitle className="font-headline text-3xl">The Proving Grounds: Your Knight's Tour</CardTitle>
             <Timer isRunning={isTimerRunning} onReset={handleTimerReset} resetKey={timerResetKey} />
           </div>
-          <CardDescription className="font-body mt-2">
-            Welcome, <strong className="text-primary">{username}</strong>! Choose your battlefield. Current challenge: {selectedBoardSize}x{selectedBoardSize}.
+          <CardDescription className="font-body mt-2 text-muted-foreground/90">
+            Welcome, Champion <strong className="text-primary">{username}</strong>! The arena is set. Current challenge: <strong className="text-accent-foreground/80">{selectedBoardSize}x{selectedBoardSize}</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {!isGameActive ? (
             <div className="space-y-4">
               <div>
-                <p className="font-body mb-2 text-center text-lg">Select Board Size:</p>
+                <p className="font-body mb-2 text-center text-lg text-muted-foreground">Select Your Challenge:</p>
                 <Tabs value={selectedBoardSize.toString()} onValueChange={(val) => setSelectedBoardSize(parseInt(val) as BoardSize)} className="w-full max-w-sm mx-auto">
                   <TabsList className="grid w-full grid-cols-4">
                     {[5, 6, 7, 8].map(size => (
@@ -227,11 +231,11 @@ export default function GameArea() {
 
           {gameMessage && (
             <p className={cn(
-                "text-center font-body text-lg p-3 rounded-md",
-                (gameMessage.includes("Victory") || gameMessage.includes("Incredible Speed")) && "bg-green-100 text-green-700 border border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-500/50",
-                gameMessage.includes("Incredible Speed") && "text-yellow-600 dark:text-yellow-400 border-yellow-400 dark:border-yellow-500/70 bg-yellow-50 dark:bg-yellow-700/20",
-                gameMessage.includes("Defeat") && "bg-red-100 text-red-700 border border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-500/50",
-                !(gameMessage.includes("Victory") || gameMessage.includes("Defeat") || gameMessage.includes("Incredible Speed")) && "bg-accent/20 text-accent-foreground/80 border border-accent/30"
+                "text-center font-body text-lg p-3 rounded-md border",
+                (gameMessage.includes("Victory") || gameMessage.includes("Phenomenal Speed")) && "bg-green-100 text-green-800 border-green-400 dark:bg-green-900/40 dark:text-green-300 dark:border-green-600/70",
+                gameMessage.includes("Phenomenal Speed") && "text-yellow-700 dark:text-yellow-300 border-yellow-500 dark:border-yellow-600/70 bg-yellow-100 dark:bg-yellow-900/30",
+                (gameMessage.includes("Defeated") || gameMessage.includes("Tour Ended")) && "bg-red-100 text-red-800 border-red-400 dark:bg-red-900/40 dark:text-red-300 dark:border-red-600/70",
+                !(gameMessage.includes("Victory") || gameMessage.includes("Defeated") || gameMessage.includes("Phenomenal Speed") || gameMessage.includes("Tour Ended")) && "bg-accent/10 text-accent-foreground/90 border-accent/30"
             )}>
               {gameMessage}
             </p>
@@ -250,17 +254,17 @@ export default function GameArea() {
         </CardContent>
       </Card>
       
-      <Card>
+      <Card className="border-primary/30">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl flex items-center gap-2"><ShieldQuestion /> How to Play</CardTitle>
+          <CardTitle className="font-headline text-2xl flex items-center gap-2"><ScrollText className="w-7 h-7 text-primary" /> Royal Edict: Rules of the Tour</CardTitle>
         </CardHeader>
-        <CardContent className="font-body space-y-2 text-sm sm:text-base">
-          <p>1. Enter your knightly name and choose a board size.</p>
-          <p>2. Click any square on the board to place your knight. This starts the timer!</p>
-          <p>3. The knight moves in an 'L' shape: two squares in one direction (horizontal or vertical) and then one square perpendicular.</p>
-          <p>4. Your goal is to visit every square on the board exactly once.</p>
-          <p>5. The game ends if you complete the tour (win) or if your knight has no valid moves left (loss).</p>
-          <p className="font-bold text-primary">Good luck, noble knight!</p>
+        <CardContent className="font-body space-y-2 text-sm sm:text-base text-muted-foreground">
+          <p>1. Declare your noble name and select the size of the proving grounds.</p>
+          <p>2. Click any square on the board to summon your knight. This signals the start of your timed trial!</p>
+          <p>3. The knight moves in an 'L' shape: two squares in one direction (horizontal or vertical), then one square perpendicular.</p>
+          <p>4. Your grand objective is to guide your knight to every square on the board, visiting each only once.</p>
+          <p>5. The tour concludes if you successfully visit every square (Victory!) or if your knight finds no valid moves remaining (Defeat).</p>
+          <p className="font-bold text-primary pt-2">May fortune favor your valiant efforts, Knight!</p>
         </CardContent>
       </Card>
 
@@ -278,7 +282,7 @@ export default function GameArea() {
               <p className="text-lg">Congratulations, Sir <strong className="text-primary">{username}</strong>!</p>
               
               {winDialogDetails.isLightningFast ? (
-                <p className="text-xl font-bold text-yellow-500 dark:text-yellow-400 py-2">
+                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 py-2">
                   By the Nine Divines! Such speed! You've completed the tour in under 10 seconds! Truly the work of a legendary speedster!
                 </p>
               ) : (
