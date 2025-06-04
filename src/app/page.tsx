@@ -5,13 +5,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Crown, ShieldAlert, Loader2 } from "lucide-react";
+import { Crown, ShieldAlert, Loader2, Zap } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 interface Score {
   id: string;
   username: string;
-  time: string;
+  time: string; // Format "MM:SS", e.g., "00:09"
   boardSize: string; // Format "NxN", e.g., "5x5"
   moves: number;
   date: string;
@@ -19,6 +19,16 @@ interface Score {
 
 const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
 const BOARD_SIZES = ["5x5", "6x6", "7x7", "8x8"];
+
+const timeToSeconds = (timeStr: string): number => {
+  if (!timeStr || !timeStr.includes(':')) return Infinity; // Handle potential malformed data
+  const parts = timeStr.split(':');
+  if (parts.length !== 2) return Infinity;
+  const minutes = parseInt(parts[0], 10);
+  const seconds = parseInt(parts[1], 10);
+  if (isNaN(minutes) || isNaN(seconds)) return Infinity;
+  return minutes * 60 + seconds;
+};
 
 export default function LeaderboardPage() {
   const [scores, setScores] = useState<Score[]>([]);
@@ -36,14 +46,14 @@ export default function LeaderboardPage() {
             setScores(parsedScores);
           } else {
             console.warn("Invalid scores format in localStorage, resetting.");
-            setScores([]); 
+            setScores([]);
           }
         } catch (error) {
           console.error("Failed to parse scores from localStorage", error);
-          setScores([]); 
+          setScores([]);
         }
       } else {
-        setScores([]); // Ensure scores is an empty array if nothing in localStorage
+        setScores([]);
       }
     } catch (e) {
       console.error("Error during score loading process:", e);
@@ -61,10 +71,6 @@ export default function LeaderboardPage() {
     if (scoresForActiveTab.length === 0) return [];
     
     return [...scoresForActiveTab].sort((a,b) => {
-        const timeToSeconds = (timeStr: string) => {
-          const [minutes, seconds] = timeStr.split(':').map(Number);
-          return minutes * 60 + seconds;
-        };
         const timeA = timeToSeconds(a.time);
         const timeB = timeToSeconds(b.time);
         
@@ -117,7 +123,7 @@ export default function LeaderboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scoresForActiveTab.length === 0 ? (
+                {sortedScores.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
                       <div className="flex flex-col items-center gap-2">
@@ -128,39 +134,45 @@ export default function LeaderboardPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedScores.map((score, index) => (
-                    <TableRow 
-                      key={score.id} 
-                      className={cn(
-                        "hover:bg-accent/10",
-                        index === 0 && sortedScores.length > 1 && "bg-chart-4/20 dark:bg-chart-4/40"
-                      )}
-                    >
-                      <TableCell 
+                  sortedScores.map((score, index) => {
+                    const isTopPlayer = index === 0 && sortedScores.length > 1;
+                    const isSub10Sec = timeToSeconds(score.time) < 10;
+
+                    return (
+                      <TableRow 
+                        key={score.id} 
                         className={cn(
-                          "font-medium text-lg text-center",
-                          index === 0 && sortedScores.length > 1 && "font-bold text-primary"
+                          "hover:bg-accent/10",
+                          isTopPlayer && "bg-chart-4/20 dark:bg-chart-4/40"
                         )}
                       >
-                        {index === 0 && sortedScores.length > 1 ? (
-                          <Crown className="w-6 h-6 text-yellow-500 inline-block" />
-                        ) : (
-                          index + 1
-                        )}
-                      </TableCell>
-                      <TableCell 
-                        className={cn(
-                          "font-medium",
-                          index === 0 && sortedScores.length > 1 && "font-bold"
-                        )}
-                      >
-                        {score.username}
-                      </TableCell>
-                      <TableCell className="text-center">{score.moves}</TableCell>
-                      <TableCell className="text-right">{score.time}</TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell 
+                          className={cn(
+                            "font-medium text-lg text-center",
+                            isTopPlayer && "font-bold text-primary"
+                          )}
+                        >
+                          {isTopPlayer ? (
+                            <Crown className="w-6 h-6 text-yellow-500 inline-block" />
+                          ) : (
+                            index + 1
+                          )}
+                        </TableCell>
+                        <TableCell 
+                          className={cn(
+                            "font-medium",
+                            isTopPlayer && "font-bold"
+                          )}
+                        >
+                          {score.username}
+                          {isSub10Sec && <Zap className="w-4 h-4 inline-block ml-1 text-yellow-500" aria-label="Sub 10 second badge" />}
+                        </TableCell>
+                        <TableCell className="text-center">{score.moves}</TableCell>
+                        <TableCell className="text-right">{score.time}</TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">{score.date}</TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
