@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldQuestion, Play, User, RefreshCw, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type BoardSize = 5 | 6 | 7 | 8;
 
