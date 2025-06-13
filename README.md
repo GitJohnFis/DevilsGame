@@ -2,6 +2,7 @@
 
 The Knight's Tour is a classic chess puzzle where the goal is to move a knight to every square on a chessboard exactly once. Here's a brief overview to help you get started with coding the game:
 
+<<<<<<< HEAD
 ## Objective
 
 - **Move the knight** to every square on the board exactly once.
@@ -56,3 +57,30 @@ class KnightsTour {
         return x >= 0 && y >= 0 && x < this.board.length && y < this.board.length && this.board[x][y] === -1;
     }
 }
+=======
+To get started, take a look at src/app/page.tsx.
+
+## The studio that has the *most* of the newer features besides all the alternative medians such as Stackoverflow with the most toxic community known to developers
+
+---
+
+## Hall of Champions
+
+Behold the mightiest knights and their gloroius tour times on various battlefields!
+
+## Top Knights
+
+Current standings for the 5x5 | 6x6 | 7x7 | 8x8 tour.
+
+## Data sets
+
+>Rank
+>Username
+>Moves
+>Time
+>Date
+
+## KNIGHTS TOUR de france 
+
+
+>>>>>>> e57febc (FEAT: new tokenized system)
