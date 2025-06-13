@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ScrollText, Play, DoorOpen, RefreshCw, ThumbsDown, PartyPopper, Award, Flame } from 'lucide-react';
+import { ScrollText, Play, DoorOpen, RefreshCw, ThumbsDown, PartyPopper, Award, Flame, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -38,6 +38,7 @@ const LOCAL_STORAGE_KEY = 'knightsTourLeaderboard';
 export default function GameArea() {
   const [username, setUsername] = useState<string>('');
   const [tempUsername, setTempUsername] = useState<string>('');
+  const [userTokens, setUserTokens] = useState<number>(0);
   const [selectedBoardSize, setSelectedBoardSize] = useState<BoardSize>(5);
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
@@ -55,9 +56,23 @@ export default function GameArea() {
   const handleUsernameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (tempUsername.trim()) {
-      setUsername(tempUsername.trim());
-      toast({ title: `Welcome, Sir ${tempUsername.trim()}!`, description: "The Proving Grounds await your skill." });
+      const trimmedUsername = tempUsername.trim();
+      setUsername(trimmedUsername);
+      toast({ title: `Welcome, Sir ${trimmedUsername}!`, description: "The Proving Grounds await your skill." });
       setGameMessage("Select your challenge and begin the tour!");
+      setUserTokens(0); // Reset tokens for new username, or load if persisted
+
+      if (trimmedUsername.toLowerCase() === 'devil') {
+        setUserTokens(prevTokens => {
+            const newTokens = prevTokens + 3;
+            toast({
+              title: "Diabolical Deal!",
+              description: "You've earned 3 tokens for your infernal allegiance!",
+              action: <Coins className="w-6 h-6 text-yellow-500" />,
+            });
+            return newTokens;
+        });
+      }
     } else {
       toast({ title: "A Knight Needs A Name!", description: "Please declare your noble title to proceed.", variant: "destructive" });
     }
@@ -118,22 +133,40 @@ export default function GameArea() {
 
          const boardSizeDisplay = `${selectedBoardSize}x${selectedBoardSize}`;
          const movesDisplay = lastGameMoves;
+        
+         let awardedTokens = 0;
+         let winReasonForTokens = "";
+
 
          if (speedTier === 'legendary') {
             currentWinMessage = `ETHEREAL VELOCITY! Sir ${username}, your sub-7s tour on the ${boardSizeDisplay} board in ${formattedTime} (${movesDisplay} moves) is a feat of legends!`;
             toastTitle = "ETHEREAL VELOCITY!";
             toastDescription = `Sir ${username}'s sub-7s tour on ${boardSizeDisplay} (${formattedTime}, ${movesDisplay} moves) is beyond legendary!`;
             toastIcon = <PartyPopper className="text-red-500" />;
+            awardedTokens = 5;
+            winReasonForTokens = `an ETHEREAL VELOCITY sub-7s tour on ${boardSizeDisplay}`;
          } else if (speedTier === 'blazing') {
             currentWinMessage = `PHENOMENAL SPEED! Sir ${username} has conquered the ${boardSizeDisplay} tour in ${formattedTime} (${movesDisplay} moves)! A true display of swiftness!`;
             toastTitle = "BLAZING VICTORY!";
             toastDescription = `Sir ${username} has shown legendary speed on the ${boardSizeDisplay} tour: ${formattedTime} (${movesDisplay} moves)!`;
             toastIcon = <PartyPopper className="text-yellow-500" />;
-         } else {
+            awardedTokens = 4;
+            winReasonForTokens = `a PHENOMENAL SPEED sub-10s tour on ${boardSizeDisplay}`;
+         } else { // Normal tier for messaging, but check time for tokens
             currentWinMessage = `VICTORY! Your tour on ${boardSizeDisplay} took ${formattedTime} in ${movesDisplay} moves. Well fought!`;
             toastTitle = "GLORIOUS TRIUMPH!";
             toastDescription = `Sir ${username} completed the ${boardSizeDisplay} tour in ${formattedTime} (${movesDisplay} moves). Score recorded!`;
             toastIcon = <PartyPopper className="text-green-500" />;
+            if (time < 15) { // sub-15s (but >=10s)
+                awardedTokens = 3;
+                winReasonForTokens = `a swift sub-15s tour on ${boardSizeDisplay}`;
+            } else if (time < 20) { // sub-20s (but >=15s)
+                awardedTokens = 2;
+                winReasonForTokens = `a speedy sub-20s tour on ${boardSizeDisplay}`;
+            } else { // >= 20s
+                awardedTokens = 1;
+                winReasonForTokens = `completing the ${boardSizeDisplay} tour`;
+            }
          }
          
          setGameMessage(currentWinMessage);
@@ -142,6 +175,15 @@ export default function GameArea() {
            description: toastDescription,
            action: toastIcon,
          });
+
+        if (awardedTokens > 0) {
+            setUserTokens(prev => prev + awardedTokens);
+            toast({
+                title: "Tokens Awarded!",
+                description: `You earned ${awardedTokens} token${awardedTokens > 1 ? 's' : ''} for ${winReasonForTokens}!`,
+                action: <Coins className="w-6 h-6 text-yellow-500" />,
+            });
+        }
 
          const newScore: Score = {
            id: Date.now().toString(),
@@ -221,13 +263,21 @@ export default function GameArea() {
     <div className="space-y-6">
       <Card className="shadow-xl border-primary/50">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <CardTitle className="font-headline text-3xl">The Proving Grounds: Your Knight's Tour</CardTitle>
-            <Timer isRunning={isTimerRunning} onReset={handleTimerReset} resetKey={timerResetKey} />
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div className="space-y-1">
+                <CardTitle className="font-headline text-3xl">The Proving Grounds: Your Knight's Tour</CardTitle>
+                <CardDescription className="font-body text-muted-foreground/90">
+                    Welcome, Champion <strong className="text-primary">{username}</strong>! Arena: <strong className="text-accent-foreground/80">{selectedBoardSize}x{selectedBoardSize}</strong>.
+                </CardDescription>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+                <Timer isRunning={isTimerRunning} onReset={handleTimerReset} resetKey={timerResetKey} />
+                <div className="flex items-center gap-2 text-lg font-body p-2 bg-card rounded-md shadow">
+                    <Coins className="w-6 h-6 text-yellow-500" />
+                    <span className="font-semibold">Tokens: {userTokens}</span>
+                </div>
+            </div>
           </div>
-          <CardDescription className="font-body mt-2 text-muted-foreground/90">
-            Welcome, Champion <strong className="text-primary">{username}</strong>! The arena is set. Current challenge: <strong className="text-accent-foreground/80">{selectedBoardSize}x{selectedBoardSize}</strong>.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {!isGameActive ? (
