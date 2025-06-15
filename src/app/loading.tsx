@@ -1,5 +1,7 @@
 import { Loader2 } from 'lucide-react';
 
+// @ Displays a loading spinner and message while content is loading.
+// ! Consider customizing the loader for better UX.
 export default function Loading() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
